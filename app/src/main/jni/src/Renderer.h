@@ -320,8 +320,6 @@ struct RenderCtx {
             }
         }
     }
-}
-
-
+};
 void draw_line(std::vector<uint32_t>& buf, int W, int H, int x0, int y0, int x1, int y1, uint32_t color);
 void draw_wireframe(std::vector<uint32_t>& buf, int W, int H, const Scene& scene);
