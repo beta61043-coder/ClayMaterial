@@ -53,7 +53,7 @@ struct Mesh {
     std::vector<Tri> tris;
 };
 
-struct SubdivResult { std::vector<Vec3> verts; std::vector<std::vector<int>> faces; std::vector<std::vector<Vec2>> face_uvs; }
+struct SubdivResult { std::vector<Vec3> verts; std::vector<std::vector<int>> faces; std::vector<std::vector<Vec2>> face_uvs; };
 
 Mesh init_cube();
 Mesh parse_obj(const std::string& path);
