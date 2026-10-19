@@ -1015,118 +1015,109 @@ struct RenderCtx {
 // ==================== FILE BROWSER DIALOG ====================
 struct FileBrowserDialog {
     bool is_open = false;
+    std::string title;
     std::string current_dir;
     std::string selected;
-    std::string title;
     std::string callback_tag;
-    std::vector<std::string> filters;
     std::vector<std::string> dirs;
     std::vector<std::string> files;
-    char path_buf[512] = "";
+    std::vector<std::string> extensions;
+    char path_buf[1024] = {0};
 
     void open(const std::string& t, const std::vector<std::string>& ext, const std::string& tag) {
-        is_open = true; title = t; filters = ext; callback_tag = tag;
-        selected.clear();
-            if (ImGui::Button("Home")) { current_dir = "/storage/emulated/0/"; refresh(); }
+        title = t;
+        extensions = ext;
+        callback_tag = tag;
+        is_open = true;
+        if (current_dir.empty()) current_dir = "/storage/emulated/0/";
+        strncpy(path_buf, current_dir.c_str(), sizeof(path_buf)-1);
         refresh();
     }
 
     void refresh() {
-            dirs.clear(); files.clear();
-            DIR* d = opendir(current_dir.c_str());
-            if (!d) return;
-            struct dirent* e;
-            while ((e = readdir(d)) != nullptr) {
-                std::string name = e->d_name;
-                if (name == "." || name == "..") continue;
-                
-                struct stat st;
-                std::string full_path = current_dir + "/" + name;
-                // stat() работает даже там, где d_type возвращает DT_UNKNOWN
-                if (stat(full_path.c_str(), &st) == 0) {
-                    if (S_ISDIR(st.st_mode)) {
-                        dirs.push_back(name);
-                    } else if (S_ISREG(st.st_mode)) {
-                        bool valid = false;
-                        if (extensions.empty()) {
-                            valid = true;
-                        } else {
-                            size_t dot_pos = name.find_last_of('.');
-                            if (dot_pos != std::string::npos) {
-                                std::string ext = name.substr(dot_pos + 1);
-                                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                                for (const auto& allowed : extensions) {
-                                    if (ext == allowed) { valid = true; break; }
-                                }
+        dirs.clear(); files.clear();
+        DIR* d = opendir(current_dir.c_str());
+        if (!d) return;
+        struct dirent* e;
+        while ((e = readdir(d)) != nullptr) {
+            std::string name = e->d_name;
+            if (name == "." || name == "..") continue;
+            
+            struct stat st;
+            std::string full_path = current_dir + "/" + name;
+            // Используем stat() вместо d_type для Android 11+
+            if (stat(full_path.c_str(), &st) == 0) {
+                if (S_ISDIR(st.st_mode)) {
+                    dirs.push_back(name);
+                } else if (S_ISREG(st.st_mode)) {
+                    bool valid = false;
+                    if (extensions.empty()) {
+                        valid = true;
+                    } else {
+                        size_t dot_pos = name.find_last_of('.');
+                        if (dot_pos != std::string::npos) {
+                            std::string ext = name.substr(dot_pos + 1);
+                            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                            for (const auto& allowed : extensions) {
+                                if (ext == allowed) { valid = true; break; }
                             }
                         }
-                        if (valid) files.push_back(name);
                     }
+                    if (valid) files.push_back(name);
                 }
             }
-            closedir(d);
-            std::sort(dirs.begin(), dirs.end());
-            std::sort(files.begin(), files.end());
         }
+        closedir(d);
+        std::sort(dirs.begin(), dirs.end());
+        std::sort(files.begin(), files.end());
+    }
 
     std::string draw() {
-        if (!is_open) return "";
-        std::string result;
-        bool visible = true;
-        ImGui::SetNextWindowSize(ImVec2(680, 540), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowPos(ImVec2(150, 60), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin(title.c_str(), &visible, ImGuiWindowFlags_NoSavedSettings)) {
+        std::string result = "";
+        if (!is_open) return result;
+        
+        ImGui::SetNextWindowSize(ImVec2(600, 450), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin(title.c_str(), &is_open, ImGuiWindowFlags_NoSavedSettings)) {
             ImGui::InputText("##dir", path_buf, sizeof(path_buf));
             ImGui::SameLine();
             if (ImGui::Button("Go")) { current_dir = path_buf; refresh(); }
             ImGui::SameLine();
-            if (ImGui::Button("Home")) { current_dir = "/storage/emulated/0/"; refresh(); }
+            if (ImGui::Button("Home")) { current_dir = "/storage/emulated/0/"; strncpy(path_buf, current_dir.c_str(), sizeof(path_buf)-1); refresh(); }
             ImGui::SameLine();
             if (ImGui::Button("Refresh")) refresh();
             ImGui::SameLine();
-            ImGui::TextDisabled("(%zu папок, %zu файлов)", dirs.size(), files.size());
+            ImGui::TextDisabled("(%zu dirs, %zu files)", dirs.size(), files.size());
             ImGui::Separator();
-            ImGui::BeginChild("file_list", ImVec2(0, -55), true);
-            for (auto& d : dirs) {
-                if (d == ".") continue;
-                if (d == "..") {
-                    if (ImGui::Selectable("[..] вверх")) {
-                        size_t p = current_dir.find_last_of('/');
-                        if (p != std::string::npos && p > 0) current_dir = current_dir.substr(0, p);
-                        else current_dir = ".";
+            
+            ImGui::BeginChild("##list", ImVec2(0, -50), true);
+            for (const auto& d : dirs) {
+                if (ImGui::Selectable((std::string("[DIR] ") + d).c_str(), false, ImGuiSelectableFlags_AllowDoubleClick)) {
+                    if (ImGui::IsMouseDoubleClicked(0)) {
+                        current_dir += "/" + d;
+                        strncpy(path_buf, current_dir.c_str(), sizeof(path_buf)-1);
                         refresh();
                     }
-                    continue;
-                }
-                if (ImGui::Selectable(("[DIR] " + d).c_str())) {
-                    current_dir = current_dir + "/" + d;
-                    refresh();
                 }
             }
-            for (auto& f : files) {
-                std::string full = current_dir + "/" + f;
-                bool is_sel = (selected == full);
-                if (ImGui::Selectable(f.c_str(), is_sel)) selected = full;
-                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-                    selected = full;
-                    result = "SELECT:" + full;
-                }
+            for (const auto& f : files) {
+                bool is_sel = (selected == current_dir + "/" + f);
+                if (ImGui::Selectable(f.c_str(), is_sel)) selected = current_dir + "/" + f;
             }
             ImGui::EndChild();
+            
             if (!selected.empty())
                 ImGui::TextColored(ImVec4(0.4f,1,0.4f,1), "Selected: %s", selected.c_str());
             else
                 ImGui::TextDisabled("Double click: open, single: select");
-            if (ImGui::Button("Open", ImVec2(120,0)) && !selected.empty()) result = "SELECT:" + selected;
+                
+            if (ImGui::Button("Open", ImVec2(120,0)) && !selected.empty()) { result = "SELECT:" + selected; is_open = false; }
             ImGui::SameLine();
             if (ImGui::Button("Cancel", ImVec2(120,0))) { is_open = false; }
         }
         ImGui::End();
-        if (!visible) is_open = false;
-        if (!result.empty()) is_open = false;
         return result;
     }
-};
+};;
 
 // ==================== UI STATE ====================
 struct UIState {
