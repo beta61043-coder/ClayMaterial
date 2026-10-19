@@ -225,7 +225,7 @@ struct Scene {
 
 
 Vec3 sample_triplanar(Vec3 p, Vec3 n, const Image& tex, float inv_scale, Vec3 off3, const DisplaceParams& dp);
-float triplanar_height(Vec3 p, const Vec3& w, const Image& tex, float inv_scale, Vec3 off3, const DisplaceParams& dp);
+float triplanar_height(Vec3 p, Vec3 n, const Image& tex, float inv_scale, Vec3 off3, const DisplaceParams& dp);
 Vec3 bump_normal_pair(const Scene& s, Vec3 p, Vec3 n, const Vec3& N_weights, const Image* t1, const Image* t2, const DisplaceParams& dp);
 Vec3 shade_hit(const Scene& s, const BVH::Hit& hit, Vec3 view_dir, std::mt19937& gen);
 
