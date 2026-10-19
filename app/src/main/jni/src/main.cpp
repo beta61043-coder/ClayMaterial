@@ -1027,7 +1027,7 @@ struct FileBrowserDialog {
     void open(const std::string& t, const std::vector<std::string>& ext, const std::string& tag) {
         is_open = true; title = t; filters = ext; callback_tag = tag;
         selected.clear();
-        if (current_dir.empty()) { const char* h = getenv("HOME"); current_dir = h ? h : "."; }
+        if (current_dir.empty()) { current_dir = "/storage/emulated/0/"; // Путь к памяти телефона }
         refresh();
     }
 
@@ -1069,7 +1069,7 @@ struct FileBrowserDialog {
             ImGui::SameLine();
             if (ImGui::Button("Go")) { current_dir = path_buf; refresh(); }
             ImGui::SameLine();
-            if (ImGui::Button("Home")) { const char* h = getenv("HOME"); current_dir = h ? h : "."; refresh(); }
+            if (ImGui::Button("Home")) { current_dir = "/storage/emulated/0/"; // Путь к памяти телефона refresh(); }
             ImGui::SameLine();
             if (ImGui::Button("Refresh")) refresh();
             ImGui::SameLine();
@@ -1320,7 +1320,7 @@ int main(int argc, char** argv) {
                 if (touches.size() < 2) last_pinch = 0;
                 event_input = true;
             }
-            if (e.type == SDL_FINGERMOTION) {
+            if (e.type == SDL_FINGERMOTION && !io.WantCaptureMouse) {
                 ImVec2 pos(e.tfinger.x * W, e.tfinger.y * H);
                 if (touches.find(e.tfinger.fingerId) != touches.end()) {
                     ImVec2 prev = touches[e.tfinger.fingerId];
@@ -1328,8 +1328,8 @@ int main(int argc, char** argv) {
                     touches[e.tfinger.fingerId] = pos;
                     
                     if (touches.size() == 1) {
-                        ui.yaw -= delta.x * 0.01f;
-                        ui.pitch += delta.y * 0.01f;
+                        ui.yaw -= delta.x * 0.003f;
+                        ui.pitch += delta.y * 0.003f;
                         ui.pitch = std::clamp(ui.pitch, -1.55f, 1.55f);
                         rctx.needs_reset = true;
                     } else if (touches.size() == 2) {
@@ -1366,8 +1366,8 @@ int main(int argc, char** argv) {
                     rctx.needs_reset = true;
                     event_input = true;
                 } else if (e.motion.state & SDL_BUTTON_LMASK) {
-                    ui.yaw += e.motion.xrel * 0.01f;
-                    ui.pitch += e.motion.yrel * 0.01f;
+                    ui.yaw += e.motion.xrel * 0.003f;
+                    ui.pitch += e.motion.yrel * 0.003f;
                     ui.pitch = std::clamp(ui.pitch, -1.55f, 1.55f);
                     rctx.needs_reset = true;
                     event_input = true;
