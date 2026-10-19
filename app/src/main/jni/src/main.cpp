@@ -1286,89 +1286,45 @@ int main(int argc, char** argv) {
     };
 
     bool running = true;
-    std::map<SDL_FingerID, ImVec2> touches;
-    ImVec2 last_mid(0,0);
-    float last_pinch = 0;
-    bool is_panning_mouse = false;
+    
+    // --- СОСТОЯНИЕ КАМЕРЫ ---
+    static bool is_rotating = false;
+    static bool is_panning = false;
+    static ImVec2 last_mouse_pos(0, 0);
+    static std::map<SDL_FingerID, ImVec2> touches;
+    static float last_pinch = 0.0f;
+    static ImVec2 last_pan_mid(0, 0);
+
     auto last_input = std::chrono::steady_clock::now();
     int last_render_ms = 0;
+
     while (running) {
         SDL_Event e;
         bool event_input = false;
+        ImGuiIO& io = ImGui::GetIO();
+
         while (SDL_PollEvent(&e)) {
             ImGui_ImplSDL2_ProcessEvent(&e);
             if (e.type == SDL_QUIT) running = false;
-            if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP ||
-                e.type == SDL_MOUSEWHEEL || e.type == SDL_KEYDOWN) {
-                event_input = true;
-            }
-            if (e.type == SDL_MOUSEMOTION && (e.motion.state & SDL_BUTTON_LMASK)) {
-                event_input = true;
-            }
-            if (e.type == SDL_FINGERDOWN) {
-                touches[e.tfinger.fingerId] = ImVec2(e.tfinger.x * W, e.tfinger.y * H);
-                if (touches.size() == 2) {
-                    auto it = touches.begin();
-                    ImVec2 p1 = it->second; ++it; ImVec2 p2 = it->second;
-                    last_mid = ImVec2((p1.x+p2.x)*0.5f, (p1.y+p2.y)*0.5f);
-                    last_pinch = std::sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
-                }
-                event_input = true;
-            }
-            if (e.type == SDL_FINGERUP) {
-                touches.erase(e.tfinger.fingerId);
-                if (touches.size() < 2) last_pinch = 0;
-                event_input = true;
-            }
-            if (e.type == SDL_FINGERMOTION && !io.WantCaptureMouse) {
-                ImVec2 pos(e.tfinger.x * W, e.tfinger.y * H);
-                if (touches.find(e.tfinger.fingerId) != touches.end()) {
-                    ImVec2 prev = touches[e.tfinger.fingerId];
-                    ImVec2 delta(pos.x - prev.x, pos.y - prev.y);
-                    touches[e.tfinger.fingerId] = pos;
-                    
-                    if (touches.size() == 1) {
-                        ui.yaw -= delta.x * 0.003f;
-                        ui.pitch += delta.y * 0.003f;
-                        ui.pitch = std::clamp(ui.pitch, -1.55f, 1.55f);
-                        rctx.needs_reset = true;
-                    } else if (touches.size() == 2) {
-                        auto it = touches.begin();
-                        ImVec2 p1 = it->second; ++it; ImVec2 p2 = it->second;
-                        ImVec2 mid((p1.x+p2.x)*0.5f, (p1.y+p2.y)*0.5f);
-                        float pinch = std::sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
-                        if (last_pinch > 0) {
-                            float zoom_delta = last_pinch - pinch;
-                            ui.dist *= (1.0f - zoom_delta * 0.01f);
-                            ui.dist = std::clamp(ui.dist, 0.5f, 50.0f);
-                            
-                            ImVec2 pan_delta(mid.x - last_mid.x, mid.y - last_mid.y);
-                            scene.target -= scene.right * (pan_delta.x * ui.dist * 0.002f);
-                            scene.target += scene.up * (pan_delta.y * ui.dist * 0.002f);
-                            rctx.needs_reset = true;
-                        }
-                        last_mid = mid;
-                        last_pinch = pinch;
-                    }
-                }
-                event_input = true;
-            }
+            
+            // --- МЫШЬ (ПК) ---
             if (e.type == SDL_MOUSEBUTTONDOWN && !io.WantCaptureMouse) {
-                if (e.button.button == SDL_BUTTON_RIGHT || e.button.button == SDL_BUTTON_MIDDLE) is_panning_mouse = true;
+                if (e.button.button == SDL_BUTTON_LEFT) is_rotating = true;
+                if (e.button.button == SDL_BUTTON_RIGHT || e.button.button == SDL_BUTTON_MIDDLE) is_panning = true;
             }
             if (e.type == SDL_MOUSEBUTTONUP) {
-                if (e.button.button == SDL_BUTTON_RIGHT || e.button.button == SDL_BUTTON_MIDDLE) is_panning_mouse = false;
+                if (e.button.button == SDL_BUTTON_LEFT) is_rotating = false;
+                if (e.button.button == SDL_BUTTON_RIGHT || e.button.button == SDL_BUTTON_MIDDLE) is_panning = false;
             }
             if (e.type == SDL_MOUSEMOTION && !io.WantCaptureMouse) {
-                if (is_panning_mouse) {
-                    scene.target -= scene.right * (e.motion.xrel * ui.dist * 0.002f);
-                    scene.target += scene.up * (e.motion.yrel * ui.dist * 0.002f);
+                if (is_rotating) {
+                    ui.yaw -= e.motion.xrel * 0.005f;
+                    ui.pitch = std::clamp(ui.pitch + e.motion.yrel * 0.005f, -1.55f, 1.55f);
                     rctx.needs_reset = true;
                     event_input = true;
-                } else if (e.motion.state & SDL_BUTTON_LMASK) {
-                    ui.yaw += e.motion.xrel * 0.003f;
-                    ui.pitch += e.motion.yrel * 0.003f;
-                    ui.pitch = std::clamp(ui.pitch, -1.55f, 1.55f);
+                } else if (is_panning) {
+                    scene.target -= scene.right * (e.motion.xrel * ui.dist * 0.002f);
+                    scene.target += scene.up * (e.motion.yrel * ui.dist * 0.002f);
                     rctx.needs_reset = true;
                     event_input = true;
                 }
@@ -1377,8 +1333,66 @@ int main(int argc, char** argv) {
                 ui.dist *= (1.0f - e.wheel.y * 0.1f);
                 ui.dist = std::clamp(ui.dist, 1.5f, 15.0f);
                 rctx.needs_reset = true;
+                event_input = true;
+            }
+
+            // --- СЕНСОР (ANDROID) ---
+            if (!io.WantCaptureMouse) {
+                if (e.type == SDL_FINGERDOWN) {
+                    touches[e.tfinger.fingerId] = ImVec2(e.tfinger.x * W, e.tfinger.y * H);
+                    if (touches.size() == 2) {
+                        auto it = touches.begin();
+                        ImVec2 p1 = it->second; ++it; ImVec2 p2 = it->second;
+                        last_pinch = std::sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
+                        last_pan_mid = ImVec2((p1.x + p2.x)*0.5f, (p1.y + p2.y)*0.5f);
+                    }
+                }
+                if (e.type == SDL_FINGERUP) {
+                    touches.erase(e.tfinger.fingerId);
+                    if (touches.size() < 2) { last_pinch = 0; }
+                }
+                if (e.type == SDL_FINGERMOTION) {
+                    ImVec2 pos(e.tfinger.x * W, e.tfinger.y * H);
+                    if (touches.find(e.tfinger.fingerId) != touches.end()) {
+                        ImVec2 delta = pos - touches[e.tfinger.fingerId];
+                        touches[e.tfinger.fingerId] = pos;
+
+                        if (touches.size() == 1) {
+                            // Вращение 1 пальцем
+                            ui.yaw -= delta.x * 0.005f;
+                            ui.pitch = std::clamp(ui.pitch + delta.y * 0.005f, -1.55f, 1.55f);
+                            rctx.needs_reset = true;
+                            event_input = true;
+                        } else if (touches.size() == 2) {
+                            // Зум и панорамирование 2 пальцами
+                            auto it = touches.begin();
+                            ImVec2 p1 = it->second; ++it; ImVec2 p2 = it->second;
+                            float pinch = std::sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
+                            ImVec2 mid((p1.x + p2.x)*0.5f, (p1.y + p2.y)*0.5f);
+
+                            if (last_pinch > 0) {
+                                // Зум
+                                float zoom_delta = last_pinch - pinch;
+                                ui.dist *= (1.0f - zoom_delta * 0.005f);
+                                ui.dist = std::clamp(ui.dist, 0.5f, 50.0f);
+                                
+                                // Панорамирование
+                                ImVec2 pan_delta(mid.x - last_pan_mid.x, mid.y - last_pan_mid.y);
+                                scene.target -= scene.right * (pan_delta.x * ui.dist * 0.002f);
+                                scene.target += scene.up * (pan_delta.y * ui.dist * 0.002f);
+                                rctx.needs_reset = true;
+                                event_input = true;
+                            }
+                            last_pinch = pinch;
+                            last_pan_mid = mid;
+                        }
+                    }
+                }
             }
         }
+
+        // Если было событие ввода - сбрасываем таймер простоя
+        if (event_input) last_input = std::chrono::steady_clock::now();
 
         // Позиция камеры (орбитальная)
         scene.eye = scene.target + Vec3(std::cos(ui.pitch)*std::sin(ui.yaw), std::sin(ui.pitch), std::cos(ui.pitch)*std::cos(ui.yaw)) * ui.dist;
