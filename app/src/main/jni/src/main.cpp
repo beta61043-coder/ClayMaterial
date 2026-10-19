@@ -1032,31 +1032,42 @@ struct FileBrowserDialog {
     }
 
     void refresh() {
-        dirs.clear(); files.clear();
-        DIR* d = opendir(current_dir.c_str());
-        if (!d) { current_dir = "."; d = opendir("."); if (!d) return; }
-        struct dirent* e;
-        while ((e = readdir(d)) != nullptr) {
-            std::string name = e->d_name;
-            if (name == "." || name == "..") { dirs.push_back(name); continue; }
-            std::string full = current_dir + "/" + name;
-            struct stat st;
-            if (stat(full.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) dirs.push_back(name);
-            else {
-                size_t dot = name.find_last_of('.');
-                if (dot != std::string::npos) {
-                    std::string ext = name.substr(dot+1);
-                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                    for (auto& f : filters) if (ext == f) { files.push_back(name); break; }
+            dirs.clear(); files.clear();
+            DIR* d = opendir(current_dir.c_str());
+            if (!d) return;
+            struct dirent* e;
+            while ((e = readdir(d)) != nullptr) {
+                std::string name = e->d_name;
+                if (name == "." || name == "..") continue;
+                
+                struct stat st;
+                std::string full_path = current_dir + "/" + name;
+                // stat() работает даже там, где d_type возвращает DT_UNKNOWN
+                if (stat(full_path.c_str(), &st) == 0) {
+                    if (S_ISDIR(st.st_mode)) {
+                        dirs.push_back(name);
+                    } else if (S_ISREG(st.st_mode)) {
+                        bool valid = false;
+                        if (extensions.empty()) {
+                            valid = true;
+                        } else {
+                            size_t dot_pos = name.find_last_of('.');
+                            if (dot_pos != std::string::npos) {
+                                std::string ext = name.substr(dot_pos + 1);
+                                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                                for (const auto& allowed : extensions) {
+                                    if (ext == allowed) { valid = true; break; }
+                                }
+                            }
+                        }
+                        if (valid) files.push_back(name);
+                    }
                 }
             }
+            closedir(d);
+            std::sort(dirs.begin(), dirs.end());
+            std::sort(files.begin(), files.end());
         }
-        closedir(d);
-        std::sort(dirs.begin(), dirs.end());
-        std::sort(files.begin(), files.end());
-        strncpy(path_buf, current_dir.c_str(), sizeof(path_buf)-1);
-        path_buf[sizeof(path_buf)-1] = 0;
-    }
 
     std::string draw() {
         if (!is_open) return "";
@@ -1354,7 +1365,7 @@ int main(int argc, char** argv) {
                 if (e.type == SDL_FINGERMOTION) {
                     ImVec2 pos(e.tfinger.x * W, e.tfinger.y * H);
                     if (touches.find(e.tfinger.fingerId) != touches.end()) {
-                        ImVec2 delta = pos - touches[e.tfinger.fingerId];
+                        ImVec2 delta(pos.x - touches[e.tfinger.fingerId].x, pos.y - touches[e.tfinger.fingerId].y);
                         touches[e.tfinger.fingerId] = pos;
 
                         if (touches.size() == 1) {
