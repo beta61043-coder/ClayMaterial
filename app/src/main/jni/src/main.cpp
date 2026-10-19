@@ -21,6 +21,9 @@
 #include <sys/stat.h>
 #include <cstring>
 
+#include <jni.h>
+#include <SDL_system.h>
+
 const float PI = 3.14159265358979f;
 const float INF = std::numeric_limits<float>::max();
 
@@ -1178,7 +1181,28 @@ void draw_wireframe(std::vector<uint32_t>& buf, int W, int H, const Scene& scene
 }
 
 // ==================== MAIN ====================
+
+// ==================== ANDROID PERMISSIONS ====================
+void requestStoragePermission() {
+#ifdef __ANDROID__
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    
+    // Ищем наш класс PermissionHelper
+    jclass clazz = env->FindClass("org/libsdl/app/PermissionHelper");
+    if (clazz != nullptr) {
+        jmethodID method = env->GetStaticMethodID(clazz, "requestAllFilesAccess", "(Landroid/content/Context;)V");
+        if (method != nullptr) {
+            env->CallStaticVoidMethod(clazz, method, activity);
+        }
+        env->DeleteLocalRef(clazz);
+    }
+    env->DeleteLocalRef(activity);
+#endif
+}
+
 int main(int argc, char** argv) {
+    requestStoragePermission(); // Запрос доступа к файлам
     if (SDL_Init(SDL_INIT_VIDEO) != 0) return 1;
     const int W = 2000, H = 1200;
     SDL_Window* win = SDL_CreateWindow("Sculpting 3D - C++ port",
