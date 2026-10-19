@@ -31,7 +31,7 @@ struct DisplaceParams {
     float midlevel2 = 0.5f;
     bool invert2 = false;
     float threshold2 = 0.05f;
-}
+};
 
 struct Material {
     Vec3 albedo_color { 0.82f, 0.82f, 0.88f };
@@ -41,7 +41,7 @@ struct Material {
     Vec3 sss_color { 0.785f, 0.0f, 0.152f };
     float procedural_alpha = 1.0f;
     float procedural_overlay = 0.5f;
-}
+};
 
 struct AABB {
     Vec3 mn { INF, INF, INF }, mx { -INF, -INF, -INF };
@@ -59,13 +59,13 @@ struct AABB {
         tmin = tmn > 0 ? tmn : tmx;
         return true;
     }
-}
+};
 
 struct BVHNode {
     AABB b;
     int left=-1, right=-1, start=0, count=0;
     bool leaf() const { return left==-1 && right==-1; }
-}
+};
 
 struct BVH {
     std::vector<BVHNode> nodes;
@@ -188,7 +188,7 @@ struct BVH {
         }
         return false;
     }
-}
+};
 
 struct Scene {
     bool interactive = false;
@@ -221,7 +221,13 @@ struct Scene {
     Vec3 eye, forward, right, up;
     float fov = 45.f * PI / 180.f;
     int W, H;
-}
+};
+
+
+Vec3 sample_triplanar(Vec3 p, Vec3 n, const Image& tex, float inv_scale, Vec3 off3, const DisplaceParams& dp);
+float triplanar_height(Vec3 p, const Vec3& w, const Image& tex, float inv_scale, Vec3 off3, const DisplaceParams& dp);
+Vec3 bump_normal_pair(const Scene& s, Vec3 p, Vec3 n, const Vec3& N_weights, const Image* t1, const Image* t2, const DisplaceParams& dp);
+Vec3 shade_hit(const Scene& s, const BVH::Hit& hit, Vec3 view_dir, std::mt19937& gen);
 
 struct RenderCtx {
     int W, H, rW, rH, scale;
