@@ -1202,9 +1202,9 @@ void requestStoragePermission() {
 }
 
 int main(int argc, char** argv) {
-    requestStoragePermission(); // Запрос доступа к файлам
     if (SDL_Init(SDL_INIT_VIDEO) != 0) return 1;
     const int W = 2000, H = 1200;
+    requestStoragePermission(); // Запрос прав после инициализации SDL
     SDL_Window* win = SDL_CreateWindow("Sculpting 3D - C++ port",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, W, H, SDL_WINDOW_SHOWN);
     SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_SOFTWARE);
