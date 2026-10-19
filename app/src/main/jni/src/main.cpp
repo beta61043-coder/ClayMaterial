@@ -1069,7 +1069,7 @@ struct FileBrowserDialog {
             ImGui::SameLine();
             if (ImGui::Button("Go")) { current_dir = path_buf; refresh(); }
             ImGui::SameLine();
-            if (ImGui::Button("Home")) { current_dir = "/storage/emulated/0/"; // Путь к памяти телефона refresh(); }
+            if (ImGui::Button("Home")) { current_dir = "/storage/emulated/0/"; refresh(); }
             ImGui::SameLine();
             if (ImGui::Button("Refresh")) refresh();
             ImGui::SameLine();
