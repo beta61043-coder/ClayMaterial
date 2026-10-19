@@ -1027,7 +1027,7 @@ struct FileBrowserDialog {
     void open(const std::string& t, const std::vector<std::string>& ext, const std::string& tag) {
         is_open = true; title = t; filters = ext; callback_tag = tag;
         selected.clear();
-        if (current_dir.empty()) { current_dir = "/storage/emulated/0/"; // Путь к памяти телефона }
+            if (ImGui::Button("Home")) { current_dir = "/storage/emulated/0/"; refresh(); }
         refresh();
     }
 
