@@ -19,6 +19,7 @@ add_subdirectory(SDL EXCLUDE_FROM_ALL)
 add_library(main SHARED
     src/main.cpp
     src/Mesh.cpp
+    src/Renderer.cpp
     src/imgui/imgui.cpp
     src/imgui/imgui_draw.cpp
     src/imgui/imgui_tables.cpp
