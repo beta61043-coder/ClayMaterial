@@ -1,0 +1,27 @@
+# Android build artifacts
+.gradle/
+build/
+app/build/
+app/.cxx/
+local.properties
+
+# Files cloned by workflow (не коммитим — они скачаются в раннере)
+app/src/main/jni/SDL/
+app/src/main/java/org/libsdl/app/
+app/src/main/res/
+
+# IDE
+.idea/
+*.iml
+
+# Прочее
+*.bak
+!main.cpp
+sculpt3d
+sculpt3d.bak
+Clay_Material
+fingerprint.png
+fingerprint.jpg
+patch.py
+imgui.ini
+main.cpp.bak
