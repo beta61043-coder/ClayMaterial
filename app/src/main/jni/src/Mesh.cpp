@@ -1,3 +1,4 @@
+#define STB_IMAGE_IMPLEMENTATION
 #include "Mesh.h"
 #include <fstream>
 #include <sstream>

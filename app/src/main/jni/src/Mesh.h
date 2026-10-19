@@ -36,7 +36,7 @@ struct Image {
         Vec3 c = sample(u, v);
         return c.x*0.2126f + c.y*0.7152f + c.z*0.0722f;
     }
-}
+};
 
 struct Mesh {
     std::vector<Vec3> verts;
@@ -51,7 +51,7 @@ struct Mesh {
         Vec2 uv0, uv1, uv2;
     };
     std::vector<Tri> tris;
-}
+};
 
 struct SubdivResult { std::vector<Vec3> verts; std::vector<std::vector<int>> faces; std::vector<std::vector<Vec2>> face_uvs; }
 
