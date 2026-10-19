@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include <cmath>
 #include <random>
+#include <algorithm>
 
 Vec2 rotate_uv(Vec2 uv, float deg) {
     if (std::abs(deg) < 0.0001f) return uv;
