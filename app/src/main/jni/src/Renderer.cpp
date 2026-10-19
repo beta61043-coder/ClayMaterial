@@ -247,3 +247,11 @@ Vec3 shade_hit(const Scene& s, const BVH::Hit& h, const Vec3& eye, std::mt19937&
     return direct + ambient + sss_emit;
 }
 
+
+Vec2 rotate_uv(Vec2 uv, float deg) {
+    if (std::abs(deg) < 0.0001f) return uv;
+    float cu = uv.x - 0.5f, cv = uv.y - 0.5f;
+    float ca = std::cos(deg*PI/180.f), sa = std::sin(deg*PI/180.f);
+    return Vec2(std::fmod(cu*ca - cv*sa + 0.5f + 10.0f, 1.0f),
+                std::fmod(cu*sa + cv*ca + 0.5f + 10.0f, 1.0f));
+}

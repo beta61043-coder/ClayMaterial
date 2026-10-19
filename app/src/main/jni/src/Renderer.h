@@ -224,6 +224,8 @@ struct Scene {
 };
 
 
+
+Vec2 rotate_uv(Vec2 uv, float angle);
 Vec3 sample_triplanar(Vec3 p, Vec3 n, const Image& tex, float inv_scale, Vec3 off3, const DisplaceParams& dp);
 float triplanar_height(Vec3 p, Vec3 n, const Image& tex, float inv_scale, Vec3 off3, const DisplaceParams& dp);
 Vec3 bump_normal_pair(const Scene& s, Vec3 p, Vec3 n, const Vec3& N_weights, const Image* t1, const Image* t2, const DisplaceParams& dp);
