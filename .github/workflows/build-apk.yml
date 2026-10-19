@@ -21,18 +21,23 @@ jobs:
 
       - name: 3. Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+          accept-android-sdk-licenses: true
 
-      - name: 4. NDK + CMake
+      - name: 4. Accept licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: 5. NDK + CMake
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
           sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1"
 
-      - name: 5. Gradle
+      - name: 6. Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: 6. Clone SDL2 + Java/Res
+      - name: 7. Clone SDL2 + Java/Res
         run: |
           git clone --depth 1 --branch release-2.30.x \
             https://github.com/libsdl-org/SDL.git app/src/main/jni/SDL
@@ -42,10 +47,10 @@ jobs:
           cp -r app/src/main/jni/SDL/android-project/app/src/main/res/. \
                 app/src/main/res/
 
-      - name: 7. Build APK
+      - name: 8. Build APK
         run: gradle assembleDebug --no-daemon --stacktrace
 
-      - name: 8. Upload
+      - name: 9. Upload
         uses: actions/upload-artifact@v4
         with:
           name: ClayMaterial-debug
